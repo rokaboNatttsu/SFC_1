@@ -9,16 +9,16 @@ function btw(X::Float64, Y::Float64, Z::Float64)
 end
 
 #   外生変数
-T = 200
-ut = 0.8    #   目標稼働率
-Cg0, SS0 = 1.0, 0.2
+T = 100
+ut, ugt = 0.8, 0.7    #   目標資本稼働率
+Cg0, SS0 = 50.0, 10.0
 ig, pe, i = 0.01, 1.0, 0.02
 #   パラメータ
-α1, α2, α3, α4, α5 = 0.9, 0.05, 0.3, 0.05, 0.02
-βk, βc, βgk, βg1, βg2, βg3 = 0.2, 0.2, 0.2, 0.02, 0.7, 0.5
+α1, α2, α3, α4, α5 = 0.9, 0.05, 0.3, 0.05, 0.0
+βk, βc, βgk, βgs, βg1, βg2, βg3 = 0.4, 0.4, 0.4, 0.4, 0.02, α5, 0.5
 β0, β2, β3, β4, β5, β6 = 0.1, 0.1, 0.1, 0.05, 1.0, 0.3
 β1 = (βk*ut - β0)/(βk*ut)
-γ1, γ2, γ3 = 0.1, 0.1, 0.2
+γ1, γ2, γ3 = 0.1, 0.05, 0.2
 γc, γk, γg = 1.0, 2.0, 1.0
 δv, δiw, δii, δew, δei, δef, δf  = 0.1, 0.2, 0.2, 0.01, 0.02, 0.01, 0.2
 ϵ, η, ζ = 0.65, 5.0, 0.01
@@ -64,7 +64,7 @@ u[end], ue[end], m[end] = 1.0, 1.0, 1.0
 Nc[end], Nk[end], Ng[end] = 10.0, 10.0, 10.0
 UC[end], p[end], pk[end] = 1.0, 1.0, 1.0
 I[end], Ie[end] = 1.0, 1.0
-K[end], Kg[end] = 5.0, 2.0
+K[end], Kg[end] = 100.0, 50.0
 C[end], Ce[end], INe[end], IN[end], S[end] = 1.0, 1.0, 1.0, 1.0, 1.0
 YDwe[end], YDw[end], YDie[end], YDi[end] = 1.0, 1.0, 1.0, 1.0
 NWwe[end], NWw[end], NWie[end], NWi[end] = 1.0, 1.0, 1.0, 1.0
@@ -82,8 +82,7 @@ Wf[1], Nk[1] = 1.0, 10.0
     #   ストックの変数の初期値は必ず会計的一貫性を持つように設定すること
 
 #   定常状態に至るまでシミュレーション
-T1 = Integer(T/2)
-for t = 1:T1
+for t = 1:T+1
     tm1 = t - 1
     if tm1 == 0
         tm1 = T
@@ -111,17 +110,18 @@ for t = 1:T1
     Wf[t] = Wf[tm1]*((1-γ1) + γ1*ue[t]/ut)  #   行動方程式
     Wg[t] = Wg[tm1]*((1-γ3) + γ3*Wf[tm1]/Wg[tm1])   #   行動方程式
     p[t] = (1.0 + m[t])*UCe[t]  #   行動方程式
-    pk[t] = Wf[t]*Nk[t]/(Ie[t] + β0*K[tm1])   #   行動方程式
+    pk[t] = Wf[t]*γg/(βk*(1-β1))   #   行動方程式
     #   生産活動の意思決定
-    Igf[t] = min((β0 + βg1)*Kg[tm1]/(1+βg2), βc*Nc[t]/γc)    #   行動方程式
-    Igg[t] = min((βg2*βg1 - β0)*Kg[tm1]/(1+βg2), βgk*Ng[t]/γg)  #   行動方程式
+    Igf[t] = min((β0 + βg1)*Kg[tm1]/(1.0 + βg2), βc*Nc[t]/γc)    #   行動方程式
+    Igg[t] = min((βg2*βg1 - β0)*Kg[tm1]/(1.0 + βg2), βgk*Ng[t]/γg)  #   行動方程式
     Ig[t] = Igf[t] + Igg[t] #   水平一貫性の会計恒等式
-    ug[t] = (Igg[t] + β0*Kg[tm1])/(βgk*βg3*Kg[tm1]) #   定義式
-    S[t] = btw(0.0, Ce[t] - INe[t] + β2*Ce[t], btw(0.0, βc*Nc[t]/γc - Igf[t], max(0.0, βc*β1*K[tm1] - Igf[t])))   #   行動方程式
-    I[t] = -β0*K[tm1] + btw(0.0, ((S[t] + Igf[t])/(βc*β1*K[tm1]) - ut)*K[tm1] + β0*K[tm1], βk*min((1-β1)*K[tm1], Nk[t]/γk, max(0.0, β5*Mf[t] + β6*(Π[tm1] - pk[t]*I[tm1]))))  #   行動方程式
+    S[t] = btw(0.0, Ce[t] - INe[t] + β2*Ce[t], max(0.0, min(βc*Nc[t]/γc - Igf[t], βc*β1*K[tm1] - Igf[t], (1.0 - βg3)*Kg[tm1]/βgs)))   #   行動方程式
+    I[t] = -β0*K[tm1] + btw(0.0, ((S[t] + Igf[t])/(βc*β1*K[tm1]) - ut)*K[tm1] + β0*K[tm1], min(βk*(1-β1)*K[tm1], βk*Nk[t]/γk, max(0.0, β5*Mf[t] + β6*(Πf[tm1] - pk[t]*I[tm1]))))  #   行動方程式
+    tmp1, tmp2, tmp3, tmp4 = ((S[t] + Igf[t])/(βc*β1*K[tm1]) - ut)*K[tm1] + β0*K[tm1], βk*(1-β1)*K[tm1], βk*Nk[t]/γk, β5*Mf[t] + β6*(Πf[tm1] - pk[t]*I[tm1])
     uc[t] = (S[t] + Igf[t])/(βc*β1*K[tm1])  #   定義式
     uk[t] = (I[t] + β0*K[tm1])/(βk*(1-β1)*K[tm1])   #   定義式
     u[t] = (S[t] + Igf[t])/(βc*K[tm1]) + (I[t] + β0*K[tm1])/(βk*K[tm1]) #   定義式
+    ug[t] = (Igg[t] + β0*Kg[tm1])/(βgk*Kg[tm1]) + S[t]*βgs/Kg[tm1] #   定義式
     K[t+1] = K[t] + I[t]    #   ストックとフローの整合性の会計恒等式
     Kg[t+1] = Kg[t] + Ig[t]    #   ストックとフローの整合性の会計恒等式
     #   支出の意思決定
@@ -138,7 +138,7 @@ for t = 1:T1
     SS[t] = SS0*(1 + α5)^t  #   行動方程式
     IN[t+1] = IN[t] + S[t] - C[t]   #   行動方程式
     #   税額の決定  （循環参照を避けるため、仕方なく、１期前の値から計算する。税額は後から確定するんだから問題ないってな言い訳もできるっちゃできる）
-    Tv[t] = δv*(p[tm1]*C[tm1] + Wf[tm1]*(Nc[tm1] + Nk[tm1]) + pk[tm1]*Igf[tm1])   #   行動方程式
+    Tv[t] = max(0.0, δv*(p[tm1]*C[tm1] + Wf[tm1]*(Nc[tm1] + Nk[tm1]) + pk[tm1]*Igf[tm1]))   #   行動方程式
     Tiw[t] = δiw*WN[tm1]  #   行動方程式
     Tii[t] = δii*(Πi[tm1] + ig*GBi[tm1])    #   行動方程式
     Ti[t] = Tiw[t] + Tii[t] #   水平一貫性の会計恒等式
@@ -162,7 +162,11 @@ for t = 1:T1
     #   可処分所得と確定した原価の計算
     YDw[t] = WN[t] + SS[t] - Tiw[t] - Tew[t] - i*Lw[t]  #  定義式
     YDi[t] = Πi[t] + ig*GBi[t] - Tii[t] - Tei[t]   #  定義式
-    UC[t] = (UC[tm1]*IN[t] + (Wf[t] + Tv[t] + Tf[t] + Tef[t]))/(S[t] + IN[t])   #   定義式
+    if S[t] + IN[t] == 0.0
+        UC[t] = UC[t-1]
+    else
+        UC[t] = (UC[tm1]*IN[t] + (Wf[t] + Tv[t] + Tf[t] + Tef[t]))/(S[t] + IN[t])   #   定義式
+    end
     #   政府の貯蓄の計算
     GS[t] = -p[t]*Cg[t] + pk[t]*Igg[t] - Wg[t]*Ng[t] - SS[t] + Tv[t] + Ti[t] + Te[t] + Tf[t] - ig*GB[t] #   垂直一貫性の会計恒等式
     #   純貸出と純資産の更新。
@@ -224,6 +228,14 @@ for t = 1:T1
     if Mi[t] < 0.0
         Li[t+1] = Mi[t] #   行動方程式
         Mi[t+1] = 0.0   #   垂直統合性を維持するための式
+    end
+    if Ei[t+1] > E[t+1]
+        Mi[t+1] += pe*(Ei[t+1] - E[t+1])
+        Ei[t+1] -= pe*(Ei[t+1] - E[t+1])
+    end
+    if Mi[t+1] < 0.0
+        Li[t+1] = Mi[t+1]
+        Mi[t+1] = 0.0
     end
     ΔLi[t] = Li[t+1] - Li[t]    #   ストックとフローの整合性の会計恒等式
     ΔMi[t] = Mi[t+1] - Mi[t]    #   ストックとフローの整合性の会計恒等式
@@ -317,6 +329,15 @@ end
 #   影響のシミュレーション
 
 #   可視化
+plot(Cg, label="Cg")
+plot!(Igf, label="Igf")
+plot!(SS, label="SS")
+savefig("figs/GovExp.png")
+plot(Tv, label="Tv")
+plot!(Ti, label="Ti")
+plot!(Te, label="Te")
+plot!(Tf, label="Tf")
+savefig("figs/Tax.png")
 plot(C, label="C")
 plot!(Cw, label="Cw")
 plot!(Ci, label="Ci")
@@ -329,6 +350,11 @@ plot!(NWi, label="NWi")
 plot!(NWf, label="NWf")
 plot!(NWg, label="NWg")
 savefig("figs/NW.png")
+plot(NLw, label="NLw")
+plot!(NLi, label="NLi")
+plot!(NLf, label="NLf")
+plot!(NLg, label="NLg")
+savefig("figs/NL.png")
 plot(Nk, label="Nk")
 plot!(Nc, label="Nc")
 plot!(Ng, label="Ng")
@@ -338,5 +364,27 @@ plot!(uc, label="uc")
 plot!(ug, label="ug")
 plot!(u, label="u")
 savefig("figs/u.png")
+plot(I, label="I")
+plot!(Ig, label="Ig")
+plot!(Kg, label="Kg")
+plot!(K, label="K")
+savefig("figs/K.png")
+plot(M, label="M")
+plot!(Mw, label="Mw")
+plot!(Mi, label="Mi")
+plot!(Mf, label="Mf")
+savefig("figs/M.png")
+plot(Wf, label="Wf")
+plot!(Wg, label="Wg")
+savefig("figs/W.png")
+plot(m, label="m")
+savefig("figs/m.png")
+plot(p, label="p")
+plot!(pk, label="pk")
+plot!(UC, label="UC")
+savefig("figs/p.png")
+plot(YDw, label="YDw")
+plot!(YDi, label="YDi")
+savefig("figs/YD.png")
 #   画像ファイルのアウトプットの方法を調べる
     #   すべての変数の記録を構造化されたディレクトリの下に保存しておきたい。
