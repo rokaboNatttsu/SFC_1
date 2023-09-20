@@ -9,16 +9,17 @@ function btw(X::Float64, Y::Float64, Z::Float64)
 end
 
 #   外生変数
-T = 100
+T = 401
+m = 0.3 #   価格マークアップ
 ut, ugt = 0.8, 0.7    #   目標資本稼働率
 Cg0, SS0 = 50.0, 10.0
 ig, pe, i = 0.01, 1.0, 0.02
 #   パラメータ
-α1, α2, α3, α4, α5 = 0.9, 0.05, 0.3, 0.05, 0.0
-βk, βc, βgk, βgs, βg1, βg2, βg3 = 0.4, 0.4, 0.4, 0.4, 0.02, α5, 0.5
+α1, α2, α3, α4, α5 = 0.9, 0.5, 0.1, 0.05, 0.02
+βk, βc, βgk, βgc, βg1, βg2, βg3 = 0.4, 0.4, 0.4, 2.0, α5, 0.5, 0.3
 β0, β2, β3, β4, β5, β6 = 0.1, 0.1, 0.1, 0.05, 1.0, 0.3
 β1 = (βk*ut - β0)/(βk*ut)
-γ1, γ2, γ3 = 0.1, 0.05, 0.2
+γ1, γ2, γ3 = 0.02, 0.02, 0.02
 γc, γk, γg = 1.0, 2.0, 1.0
 δv, δiw, δii, δew, δei, δef, δf  = 0.1, 0.2, 0.2, 0.01, 0.02, 0.01, 0.2
 ϵ, η, ζ = 0.65, 5.0, 0.01
@@ -28,14 +29,14 @@ ig, pe, i = 0.01, 1.0, 0.02
 λe = 0.5
 
 #   変数定義
-m, p, pk = zeros(T), zeros(T), zeros(T)
+p, pk = zeros(T), zeros(T), zeros(T)
 Wf, Wg = zeros(T), zeros(T)
-u, uc, uk, ug, ue = zeros(T), zeros(T), zeros(T), zeros(T), zeros(T)
+u, uc, uk, ug, ugk, ugc, ue = zeros(T), zeros(T), zeros(T), zeros(T), zeros(T), zeros(T), zeros(T)
 UCe, UC = zeros(T), zeros(T)
 I, Ig, Igg, Igf, Ie = zeros(T), zeros(T), zeros(T), zeros(T), zeros(T)
 K, Kg = zeros(T), zeros(T)
 Cw, Ci, Cg, C, Ce = zeros(T), zeros(T), zeros(T), zeros(T), zeros(T)
-SS = zeros(T)
+SS, C_demand = zeros(T), zeros(T)
 ΔIN, IN, S, INe, Se = zeros(T), zeros(T), zeros(T), zeros(T), zeros(T)
 YDw, YDi, YDwe, YDie = zeros(T), zeros(T), zeros(T), zeros(T)
 NWw, NWi, NWwe, NWie = zeros(T), zeros(T), zeros(T), zeros(T)
@@ -61,15 +62,16 @@ H, ΔH = zeros(T), zeros(T)
 
 #   初期値設定
 u[end], ue[end], m[end] = 1.0, 1.0, 1.0
-Nc[end], Nk[end], Ng[end] = 10.0, 10.0, 10.0
+Nc[end], Nk[end], Ng[end] = 200.0, 200.0, 200.0
 UC[end], p[end], pk[end] = 1.0, 1.0, 1.0
 I[end], Ie[end] = 1.0, 1.0
-K[end], Kg[end] = 100.0, 50.0
+K[end], Kg[end] = 500.0, 300.0
 C[end], Ce[end], INe[end], IN[end], S[end] = 1.0, 1.0, 1.0, 1.0, 1.0
+C_demand[end] = C[end]
 YDwe[end], YDw[end], YDie[end], YDi[end] = 1.0, 1.0, 1.0, 1.0
 NWwe[end], NWw[end], NWie[end], NWi[end] = 1.0, 1.0, 1.0, 1.0
 Π[end] = 1.0
-Wf[end], Wg[end], WN[end] = 1.0, 1.0, 1.0
+Wf[end], Wg[end], WN[end] = 0.1, 0.1, 10.0
 Igf[end], Πi[end], GBi[end], Tiw[end], Tii[end] = 1.0, 1.0, 1.0, 1.0, 1.0
 Mw[end], Lw[end], Ei[end] = 1.0, 1.0, 1.0
 IN[1], Ei[1] = 1.0, 10.0
@@ -77,12 +79,12 @@ K[1], Kg[1] = K[end], Kg[end]
 NWi[1] = pe*Ei[1]
 NWf[1] = pk[end]*K[1] + p[end]*IN[1] - pe*Ei[1]
 NWg[1] = pk[end]*Kg[1]
-Wf[1], Nk[1] = 1.0, 10.0
+Wf[1] = 0.1
 
     #   ストックの変数の初期値は必ず会計的一貫性を持つように設定すること
 
 #   定常状態に至るまでシミュレーション
-for t = 1:T+1
+for t = 1:T-1
     tm1 = t - 1
     if tm1 == 0
         tm1 = T
@@ -90,7 +92,7 @@ for t = 1:T+1
     #   期待値計算
     ue[t] = λe*u[tm1] + (1 - λe)*ue[tm1]
     Ie[t] = λe*I[tm1] + (1 - λe)*Ie[tm1]
-    Ce[t] = λe*C[tm1] + (1 - λe)*Ce[tm1]
+    Ce[t] = λe*C_demand[tm1] + (1 - λe)*Ce[tm1]
     Se[t] = λe*S[tm1] + (1 - λe)*Se[tm1]
     INe[t] = λe*IN[tm1] + (1 - λe)*INe[tm1]
     YDwe[t] = λe*YDw[tm1] + (1 - λe)*YDwe[tm1]
@@ -105,31 +107,32 @@ for t = 1:T+1
     Nk[t] = btw((1-β4)*Nk[tm1], γk*(1-β1)*K[t], (1+β3)*Nk[tm1])    #   行動方程式
     Ng[t] = btw((1-β4)*Ng[tm1], γg*βg3*Kg[t], (1+β3)*Ng[tm1])  #   行動方程式
     #   価格設定
-    m[t] = m[tm1]*((1-γ2) + γ2*ue[t]/ut)    #   行動方程式
     UCe[t] = (UC[tm1]*IN[t] + (Wf[t] + Tve[t] + Tfe[t] + Tefe[t]))/(Se[t] + IN[t]) #   行動方程式
     Wf[t] = Wf[tm1]*((1-γ1) + γ1*ue[t]/ut)  #   行動方程式
     Wg[t] = Wg[tm1]*((1-γ3) + γ3*Wf[tm1]/Wg[tm1])   #   行動方程式
-    p[t] = (1.0 + m[t])*UCe[t]  #   行動方程式
+    p[t] = (1.0 + m)*UCe[t]  #   行動方程式
     pk[t] = Wf[t]*γg/(βk*(1-β1))   #   行動方程式
     #   生産活動の意思決定
     Igf[t] = min((β0 + βg1)*Kg[tm1]/(1.0 + βg2), βc*Nc[t]/γc)    #   行動方程式
     Igg[t] = min((βg2*βg1 - β0)*Kg[tm1]/(1.0 + βg2), βgk*Ng[t]/γg)  #   行動方程式
     Ig[t] = Igf[t] + Igg[t] #   水平一貫性の会計恒等式
-    S[t] = btw(0.0, Ce[t] - INe[t] + β2*Ce[t], max(0.0, min(βc*Nc[t]/γc - Igf[t], βc*β1*K[tm1] - Igf[t], (1.0 - βg3)*Kg[tm1]/βgs)))   #   行動方程式
-    I[t] = -β0*K[tm1] + btw(0.0, ((S[t] + Igf[t])/(βc*β1*K[tm1]) - ut)*K[tm1] + β0*K[tm1], min(βk*(1-β1)*K[tm1], βk*Nk[t]/γk, max(0.0, β5*Mf[t] + β6*(Πf[tm1] - pk[t]*I[tm1]))))  #   行動方程式
-    tmp1, tmp2, tmp3, tmp4 = ((S[t] + Igf[t])/(βc*β1*K[tm1]) - ut)*K[tm1] + β0*K[tm1], βk*(1-β1)*K[tm1], βk*Nk[t]/γk, β5*Mf[t] + β6*(Πf[tm1] - pk[t]*I[tm1])
+    S[t] = btw(0.0, Ce[t] - INe[t] + β2*Ce[t], max(0.0, min(βc*Nc[t]/γc - Igf[t], βc*β1*K[tm1] - Igf[t], βgc*(1.0 - βg3)*Kg[tm1])))   #   行動方程式
+    I[t] = -β0*K[tm1] + btw(0.0, ((S[t] + Igf[t])/(βc*β1*K[tm1]) - ut)*K[tm1] + β0*K[tm1], min(βk*(1.0 - β1)*K[tm1], βk*Nk[t]/γk))#, max(0.0, β5*Mf[t] + β6*(Πf[tm1] - pk[t]*I[tm1]))))  #   行動方程式
     uc[t] = (S[t] + Igf[t])/(βc*β1*K[tm1])  #   定義式
     uk[t] = (I[t] + β0*K[tm1])/(βk*(1-β1)*K[tm1])   #   定義式
     u[t] = (S[t] + Igf[t])/(βc*K[tm1]) + (I[t] + β0*K[tm1])/(βk*K[tm1]) #   定義式
-    ug[t] = (Igg[t] + β0*Kg[tm1])/(βgk*Kg[tm1]) + S[t]*βgs/Kg[tm1] #   定義式
+    ugk[t] = (Igg[t] + β0*Kg[tm1])/(βgk*βg3*Kg[tm1])    #   定義式
+    ugc[t] = S[t]/(βgc*(1.0 - βg3)*Kg[tm1]) #   定義式
+    ug[t] = (1 - βg3)*ugc[t] + βg3*ugk[t]
     K[t+1] = K[t] + I[t]    #   ストックとフローの整合性の会計恒等式
     Kg[t+1] = Kg[t] + Ig[t]    #   ストックとフローの整合性の会計恒等式
     #   支出の意思決定
     Cw[t] = (α1*YDwe[t] + α2*NWwe[t])/p[t]  #   行動方程式
     Ci[t] = (α3*YDie[t] + α4*NWie[t])/p[t]  #   行動方程式
-    Cg[t] = Cg0*(1 + α5)^t  #   行動方程式
-    C[t] = min(IN[t] + S[t], Cw[t] + Ci[t] + Cg[t])    #   水平一貫性の会計恒等式
-    if Cw[t] + Ci[t] + Cg[t] > C[t]
+    Cg[t] = Cg0*(1.0 + α5)^t  #   行動方程式
+    C_demand[t] = Cw[t] + Ci[t] + Cg[t]
+    C[t] = min(IN[t] + S[t], C_demand[t])    #   水平一貫性の会計恒等式
+    if C_demand[t] > C[t]
         tmp = C[t]/(Cw[t] + Ci[t] + Cg[t])
         Cw[t] *= tmp
         Ci[t] *= tmp
@@ -143,7 +146,7 @@ for t = 1:T+1
     Tii[t] = δii*(Πi[tm1] + ig*GBi[tm1])    #   行動方程式
     Ti[t] = Tiw[t] + Tii[t] #   水平一貫性の会計恒等式
     Tew[t] = δew*max(0.0, Mw[tm1] - Lw[tm1])  #   行動方程式
-    Tei[t] = δew*Mi[t] + δei*(pe*Ei[tm1]+GBi[tm1]) #   行動方程式
+    Tei[t] = δew*max(0.0, Mi[tm1] - Li[tm1]) + δei*(pe*Ei[tm1]+GBi[tm1]) #   行動方程式
     Tef[t] = δef*K[tm1] #   行動方程式
     Te[t] = Tew[t] + Tei[t] + Tef[t]    #   水平一貫性の会計恒等式
     Tf[t] = max(0.0, δf*(p[t]*C[t] + p[t]*ΔIN[t] + pk[t]*I[t] + pk[t]*Igf[t] - Wf[t]*(Nc[t] + Nk[t]) - Tv[t] - Tef[t] - i*Lf[t])) #   行動方程式
@@ -176,7 +179,7 @@ for t = 1:T+1
     NLg[t] = -pk[t]*Ig[t] + GS[t]   #   定義式
     tmp = abs(NLw[t+1] + NLi[t+1] + NLf[t+1] + NLg[t+1])
     if tmp > 0.001
-        println("会計的一貫性が崩れている")
+        println("会計的一貫性が崩れている p0, t=",t)
     end
     #   労働者の資金調達
     Lw[t+1] = η*WN[t]   #  行動方程式
@@ -209,7 +212,7 @@ for t = 1:T+1
     E[t+1] = E[t] + ΔE[t]       #   ストックとフローの整合性の会計恒等式
     Mf[t+1] = Mf[t] + ΔMf[t]    #   ストックとフローの整合性の会計恒等式
     if abs(NLf[t] - ΔMf[t] + ΔLf[t] + pe*ΔE[t]) > 0.001
-        println("会計的一貫性が壊れている")
+        println("会計的一貫性が壊れている p1 t=",t)
     end
     #   投資家のポートフォリオ配分
     V, Y = NWi[t] + NLi[t], NLi[t]
@@ -234,7 +237,7 @@ for t = 1:T+1
         Ei[t+1] -= pe*(Ei[t+1] - E[t+1])
     end
     if Mi[t+1] < 0.0
-        Li[t+1] = Mi[t+1]
+        Li[t+1] = -Mi[t+1]
         Mi[t+1] = 0.0
     end
     ΔLi[t] = Li[t+1] - Li[t]    #   ストックとフローの整合性の会計恒等式
@@ -242,7 +245,7 @@ for t = 1:T+1
     ΔEi[t] = Ei[t+1] - Ei[t]    #   ストックとフローの整合性の会計恒等式
     ΔGBi[t] = GBi[t+1] - GBi[t] #   ストックとフローの整合性の会計恒等式
     if abs(NLi[t] - ΔMi[t] + ΔLi[t] - pe*ΔEi[t] - ΔGBi[t]) > 0.001
-        println("会計的一貫性が壊れている")
+        println("会計的一貫性が壊れている p2 t=",t)
     end
     #   金融機関のポートフォリオ。投資家の意思決定の結果を押し付けられるモデルにした。
     ΔEb[t] = ΔE[t] - ΔEi[t]     #   水平一貫性の会計恒等式
@@ -256,65 +259,65 @@ for t = 1:T+1
     ΔGBb[t] = ΔM[t] - ΔL[t] - ΔH[t] - pe*ΔEb[t]   #   垂直一貫性の会計恒等式
     GBb[t+1] = GBb[t] + ΔGBb[t] #   ストックとフローの整合性の会計恒等式
     if abs(ΔM[t] - ΔL[t] - ΔH[t] - pe*ΔEb[t] - ΔGBb[t]) > 0.001
-        println("会計的一貫性が壊れている")
+        println("会計的一貫性が壊れている p3 t=",t)
     end
     #   統合政府のポートフォリオ配分。民間金融機関の意思決定の結果から内生的にHPMや国債を提供する
     ΔGB[t] = ΔGBi[t] + ΔGBb[t]    #   水平一貫性の会計恒等式
     GB[t+1] = GB[t] + ΔGB[t]    #   ストックとフローの整合性の会計恒等式
     #   隠された恒等式による、会計的一貫性の確認
     if abs(Cw[t] + Ci[t] + Cg[t] - C[t]) > 0.001
-        println("水平統合性が損なわれている")
+        println("水平統合性が損なわれている p4 t=",t)
     end
     if abs(Igf[t] + Igg[t] - Ig[t]) > 0.001
-        println("水平統合性が損なわれている")
+        println("水平統合性が損なわれている p5 t=",t)
     end
     if abs(Wf[t]*(Nc[t]+Nk[t]) + WbNb[t] + Wg[t]*Ng[t] - WN[t]) > 0.001
-        println("水平統合性が損なわれている")
+        println("水平統合性が損なわれている p6 t=",t)
     end
     if abs(Tiw[t] + Tii[t] - Ti[t]) > 0.001
-        println("水平統合性が損なわれている")
+        println("水平統合性が損なわれている p7 t=",t)
     end
     if abs(Tew[t] + Tei[t] + Tef[t] - Te[t]) > 0.001
-        println("水平統合性が損なわれている")
+        println("水平統合性が損なわれている p8 t=",t)
     end
     if abs(Πi[t] + Πf[t] + Πb[t] - Π[t]) > 0.001
-        println("水平統合性が損なわれている")
+        println("水平統合性が損なわれている p9 t=",t)
     end
     if abs(ΔMw[t] + ΔMi[t] + ΔMf[t] - ΔM[t]) > 0.001
-        println("水平統合性が損なわれている")
+        println("水平統合性が損なわれている p10 t=",t)
     end
     if abs(ΔLw[t] + ΔLi[t] + ΔLf[t] - ΔL[t]) > 0.001
-        println("水平統合性が損なわれている")
+        println("水平統合性が損なわれている p11 t=",t)
     end
     if abs(ΔEi[t] + ΔEb[t] - ΔE[t]) > 0.001
-        println("水平統合性が損なわれている")
+        println("水平統合性が損なわれている p12 t=",t)
     end
     if abs(ΔGBi[t] + ΔGBb[t] - ΔGB[t]) > 0.001
-        println("水平統合性が損なわれている")
+        println("水平統合性が損なわれている p13 t=",t)
     end
     if abs(-p[t]*Cw[t] + WN[t] + SS[t] - Tiw[t] - Tew[t] - i*Lw[t] - ΔMw[t] + ΔLw[t]) > 0.001
-        println("垂直統合性が損なわれている")
+        println("垂直統合性が損なわれている p14 t=",t)
     end
     if abs(-p[t]*Ci[t]- Tii[t] - Tei[t] + Πi[t] + ig*GBi[t] - ΔMi[t] + ΔLi[t] - pe*ΔEi[t] - ΔGBi[t]) > 0.001
-        println("垂直統合性が損なわれている")
+        println("垂直統合性が損なわれている p15 t=",t)
     end
     if abs(p[t]*C[t] + p[t]*ΔIN[t] + pk[t]*I[t] + pk[t]*Igf[t] - Wf[t]*(Nc[t] + Nk[t]) - Tv[t] - Tef[t] -Tf[t] - Π[t] - i*Lf[t]) > 0.001
-        println("垂直統合性が損なわれている")
+        println("垂直統合性が損なわれている p16 t=",t)
     end
     if abs(-p[t]*ΔIN[t] - pk[t]*I[t] + Πf[t] - ΔMf[t] + ΔLf[t] + pe*ΔE[t]) > 0.001
-        println("垂直統合性が損なわれている")
+        println("垂直統合性が損なわれている p17 t=",t)
     end
     if abs(-WbNb[t] + Πb[t] + ig*GBb[t] + i*L[t]) > 0.001
-        println("垂直統合性が損なわれている")
+        println("垂直統合性が損なわれている p18 t=",t)
     end
     if abs(ΔM[t] - ΔL[t] - ΔH[t] - pe*ΔEb[t] - ΔGBb[t]) > 0.001
-        println("垂直統合性が損なわれている")
+        println("垂直統合性が損なわれている p19 t=",t)
     end
     if abs(-p[t]*Cg[t] + pk[t]*Igg[t] - Wg[t]*Ng[t] - SS[t] + Tv[t] + Ti[t] + Te[t] + Tf[t] - ig*GB[t] - GS[t]) > 0.001
-        println("垂直統合性が損なわれている")
+        println("垂直統合性が損なわれている p20 t=",t)
     end
     if abs(NLg[t] + ΔH[t] + ΔGB[t]) > 0.001#   隠された会計恒等式
-        println("垂直統合性が損なわれているt = $t")
+        println("垂直統合性が損なわれている p21 t=",t," Δ=",NLg[t] + ΔH[t] + ΔGB[t])
     end
     #   BSMの会計恒等式を追加する必要があるかどうか未確認
     NWw[t+1] = Mw[t+1] - Lw[t+1]  #   ストックとフローの整合性の会計恒等式
@@ -329,62 +332,78 @@ end
 #   影響のシミュレーション
 
 #   可視化
-plot(Cg, label="Cg")
-plot!(Igf, label="Igf")
-plot!(SS, label="SS")
+plot(p[end-100:end-1].*Cg[end-100:end-1], label="Cg")
+plot!(pk[end-100:end-1].*Igf[end-100:end-1], label="Igf")
+plot!(SS[end-100:end-1], label="SS")
+plot!(Wg[end-100:end-1].*Ng[end-100:end-1], label="Wg")
 savefig("figs/GovExp.png")
-plot(Tv, label="Tv")
-plot!(Ti, label="Ti")
-plot!(Te, label="Te")
-plot!(Tf, label="Tf")
+plot(Tv[end-100:end-1], label="Tv")
+plot!(Ti[end-100:end-1], label="Ti")
+plot!(Te[end-100:end-1], label="Te")
+plot!(Tf[end-100:end-1], label="Tf")
 savefig("figs/Tax.png")
-plot(C, label="C")
-plot!(Cw, label="Cw")
-plot!(Ci, label="Ci")
-plot!(Cg, label="Cg")
-plot!(IN, label="IN")
-plot!(S, label="S")
+plot(p[end-100:end-1].*C[end-100:end-1], label="C")
+plot!(p[end-100:end-1].*Cw[end-100:end-1], label="Cw")
+plot!(p[end-100:end-1].*Ci[end-100:end-1], label="Ci")
+plot!(p[end-100:end-1].*Cg[end-100:end-1], label="Cg")
+plot!(p[end-100:end-1].*IN[end-100:end-1], label="IN")
+plot!(p[end-100:end-1].*S[end-100:end-1], label="S")
 savefig("figs/1.png")
-plot(NWw, label="NWw")
-plot!(NWi, label="NWi")
-plot!(NWf, label="NWf")
-plot!(NWg, label="NWg")
+plot(NWw[end-100:end-1], label="NWw")
+plot!(NWi[end-100:end-1], label="NWi")
+plot!(NWf[end-100:end-1], label="NWf")
+plot!(NWg[end-100:end-1], label="NWg")
 savefig("figs/NW.png")
-plot(NLw, label="NLw")
-plot!(NLi, label="NLi")
-plot!(NLf, label="NLf")
-plot!(NLg, label="NLg")
+plot(NLw[end-100:end-1], label="NLw")
+plot!(NLi[end-100:end-1], label="NLi")
+plot!(NLf[end-100:end-1], label="NLf")
+plot!(NLg[end-100:end-1], label="NLg")
 savefig("figs/NL.png")
-plot(Nk, label="Nk")
-plot!(Nc, label="Nc")
-plot!(Ng, label="Ng")
+plot(Nk[end-100:end-1], label="Nk")
+plot!(Nc[end-100:end-1], label="Nc")
+plot!(Ng[end-100:end-1], label="Ng")
 savefig("figs/N.png")
-plot(uk, label="uk")
-plot!(uc, label="uc")
-plot!(ug, label="ug")
-plot!(u, label="u")
+plot(uk[end-100:end-1], label="uk")
+plot!(uc[end-100:end-1], label="uc")
+plot!(u[end-100:end-1], label="u")
 savefig("figs/u.png")
-plot(I, label="I")
-plot!(Ig, label="Ig")
-plot!(Kg, label="Kg")
-plot!(K, label="K")
+plot(ugk[end-100:end-1], label="ugk")
+plot!(ugc[end-100:end-1], label="ugc")
+plot!(ug[end-100:end-1], label="ug")
+savefig("figs/ug.png")
+plot(I[end-100:end-1], label="I")
+plot!(Ig[end-100:end-1], label="Ig")
+plot!(Kg[end-100:end-1], label="Kg")
+plot!(K[end-100:end-1], label="K")
 savefig("figs/K.png")
-plot(M, label="M")
-plot!(Mw, label="Mw")
-plot!(Mi, label="Mi")
-plot!(Mf, label="Mf")
+plot(M[end-100:end-1], label="M")
+plot!(Mw[end-100:end-1], label="Mw")
+plot!(Mi[end-100:end-1], label="Mi")
+plot!(Mf[end-100:end-1], label="Mf")
 savefig("figs/M.png")
-plot(Wf, label="Wf")
-plot!(Wg, label="Wg")
+plot(Wf[end-100:end-1], label="Wf")
+plot!(Wg[end-100:end-1], label="Wg")
 savefig("figs/W.png")
-plot(m, label="m")
-savefig("figs/m.png")
-plot(p, label="p")
-plot!(pk, label="pk")
-plot!(UC, label="UC")
+plot(p[end-100:end-1], label="p")
+plot!(pk[end-100:end-1], label="pk")
+plot!(UC[end-100:end-1], label="UC")
 savefig("figs/p.png")
-plot(YDw, label="YDw")
-plot!(YDi, label="YDi")
+plot(YDw[end-100:end-1], label="YDw")
+plot!(YDi[end-100:end-1], label="YDi")
 savefig("figs/YD.png")
-#   画像ファイルのアウトプットの方法を調べる
-    #   すべての変数の記録を構造化されたディレクトリの下に保存しておきたい。
+plot(Tv[end-100:end-1], label="Tv")
+plot!(Tf[end-100:end-1], label="Tf")
+savefig("figs/Tv_and_Tf.png")
+plot(Tiw[end-100:end-1], label="Tiw")
+plot!(Tii[end-100:end-1], label="Tii")
+plot!(Ti[end-100:end-1], label="Ti")
+savefig("figs/Ti.png")
+plot(Tew[end-100:end-1], label="Tew")
+plot!(Tei[end-100:end-1], label="Tei")
+plot!(Tef[end-100:end-1], label="Tef")
+plot!(Te[end-100:end-1], label="Te")
+savefig("figs/Te.png")
+plot(C_demand[end-100:end-1], label="C_demand")
+plot!(C[end-100:end-1], label="C")
+plot!(Ce[end-100:end-1], label="Ce")
+savefig("figs/C_demand")
