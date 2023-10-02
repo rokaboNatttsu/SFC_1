@@ -10,18 +10,19 @@ end
 
 #   外生変数
 T = 10^3 + 1
-m = 0.3 #   価格マークアップ
+m = 0.1 #   税も含めた総コストに対する価格マークアップ
 ut, ugt = 0.8, 0.7    #   目標資本稼働率
 Cg0, SS0 = 50.0, 10.0
 ig, pe, i = 0.01, 1.0, 0.02
+
 #   パラメータ
 α1, α2, α3, α4, α5 = 0.9, 0.05, 0.1, 0.05, 0.01
-βk, βc, βgk, βgc, βg1, βg2, βg3 = 0.4, 0.4, 0.4, 2.0, α5, 0.5, 0.3
+βk, βc, βgk, βgc, βg1, βg2, βg3 = 0.4, 0.4, 0.4, 4.0, α5, 0.5, 0.3
 β0, β2, β3, β4, β5, β6 = 0.1, 0.1, 0.1, 0.05, 1.0, 1.0
 β1 = (βk*ut - β0)/(βk*ut)
 γ1, γ2, γ3 = 0.02, 0.02, 0.02
 γc, γk, γg = 1.0, 2.0, 1.0
-δv, δiw, δii, δem, δei, δef, δf  = 0.1, 0.2, 0.2, 0.01, 0.02, 0.01, 0.2
+δv, δiw, δii, δem, δei, δef, δf  = 0.1, 0.2, 0.2, 0.01, 0.02, 0.015, 0.2
 ϵ, η, ζ = 0.65, 5.0, 0.01
 λ00, λ10, λ20, λ01, λ11, λ21 = 0.4, 0.4, 0.2, -1.0, 1.0, 0.0
 λ21 = -(λ01 + λ11)
@@ -80,29 +81,31 @@ NWi[1] = pe*Ei[1]
 NWf[1] = pk[end]*K[1] + p[end]*IN[1] - pe*E[1]
 NWg[1] = p[end]*Kg[1]
 Wf[1] = Wf[end]
-
     #   ストックの変数の初期値は必ず会計的一貫性を持つように設定すること
 
 #   定常状態に至るまでシミュレーション
 for t = 1:T-1
-    tm1 = t - 1
+    tm1, tm2 = t - 1, t - 2
     if tm1 == 0
         tm1 = T
+        tm2 = T - 1
+    elseif tm2 == 0
+        tm2 = T
     end
     #   期待値計算
-    ue[t] = λe*u[tm1] + (1 - λe)*ue[tm1]
-    Ie[t] = λe*I[tm1] + (1 - λe)*Ie[tm1]
-    Ce[t] = λe*C[tm1] + (1 - λe)*Ce[tm1]
-    Se[t] = λe*S[tm1] + (1 - λe)*Se[tm1]
-    INe[t] = λe*IN[tm1] + (1 - λe)*INe[tm1]
-    Igfe[t] = λe*Igf[tm1] + (1 - λe)*Igfe[tm1]
-    YDwe[t] = λe*YDw[tm1] + (1 - λe)*YDwe[tm1]
-    YDie[t] = λe*YDi[tm1] + (1 - λe)*YDie[tm1]
-    Tve[t] = λe*Tv[tm1] + (1 - λe)*Tve[tm1]
-    Tfe[t] = λe*Tf[tm1] + (1 - λe)*Tfe[tm1]
-    Tefe[t] = λe*Tef[tm1] + (1 - λe)*Tefe[tm1]
-    NWwe[t] = λe*NWw[tm1] + (1 - λe)*NWwe[tm1]
-    NWie[t] = λe*NWi[tm1] + (1 - λe)*NWie[tm1]
+    ue[t] = λe*u[tm1] + (1 - λe)*ue[tm1] + (u[tm1] - u[tm2])
+    Ie[t] = λe*I[tm1] + (1 - λe)*Ie[tm1] + (I[tm1] - I[tm2])
+    Ce[t] = λe*C[tm1] + (1 - λe)*Ce[tm1] + (C[tm1] - C[tm2])
+    Se[t] = λe*S[tm1] + (1 - λe)*Se[tm1] + (S[tm1] - S[tm2])
+    INe[t] = λe*IN[tm1] + (1 - λe)*INe[tm1] + (IN[tm1] - IN[tm2])
+    Igfe[t] = λe*Igf[tm1] + (1 - λe)*Igfe[tm1] + (Igf[tm1] - Igf[tm2])
+    YDwe[t] = λe*YDw[tm1] + (1 - λe)*YDwe[tm1] + (YDw[tm1] - YDw[tm2])
+    YDie[t] = λe*YDi[tm1] + (1 - λe)*YDie[tm1] + (YDi[tm1] - YDi[tm2])
+    Tve[t] = λe*Tv[tm1] + (1 - λe)*Tve[tm1] + (Tv[tm1] - Tv[tm2])
+    Tfe[t] = λe*Tf[tm1] + (1 - λe)*Tfe[tm1] + (Tf[tm1] - Tf[tm2])
+    Tefe[t] = λe*Tef[tm1] + (1 - λe)*Tefe[tm1] + (Tef[tm1] - Tef[tm2])
+    NWwe[t] = λe*NWw[tm1] + (1 - λe)*NWwe[tm1] + (NWw[tm1] - NWw[tm2])
+    NWie[t] = λe*NWi[tm1] + (1 - λe)*NWie[tm1] + (NWi[tm1] - NWi[tm2])
     #   雇用者数設定
     Nc[t] = btw((1-β4)*Nc[tm1], γc*β1*K[t], (1+β3)*Nc[tm1])    #   行動方程式
     Nk[t] = btw((1-β4)*Nk[tm1], γk*(1-β1)*K[t], (1+β3)*Nk[tm1])    #   行動方程式
@@ -139,7 +142,7 @@ for t = 1:T-1
         Ci[t] *= tmp
         Cg[t] *= tmp
     end
-    SS[t] = SS0*(1 + α5)^t  #   行動方程式
+    SS[t] = SS0*Kg[t]/Kg[1]  #   行動方程式
     IN[t+1] = IN[t] + S[t] - C[t]   #   行動方程式
     #   税額の決定  （循環参照を避けるため、仕方なく、１期前の値から計算する。税額は後から確定するんだから問題ないってな言い訳もできるっちゃできる）
     Tv[t] = max(0.0, δv*(p[tm1]*(C[tm1] + ΔIN[tm1] + Igf[tm1]) + pk[tm1]*I[tm1]) - i*Lf[t])   #   行動方程式
@@ -263,55 +266,55 @@ for t = 1:T-1
     GB[t+1] = GB[t] + ΔGB[t]    #   ストックとフローの整合性の会計恒等式
     #   隠された恒等式による、会計的一貫性の確認
     if abs(Cw[t] + Ci[t] + Cg[t] - C[t]) > 0.00001
-        println("水平統合性が損なわれている p4 t=",t)
+        println("水平統合性が損なわれている p4 t=",t," Δ=",Cw[t] + Ci[t] + Cg[t] - C[t])
     end
     if abs(Igf[t] + Igg[t] - Ig[t]) > 0.00001
-        println("水平統合性が損なわれている p5 t=",t)
+        println("水平統合性が損なわれている p5 t=",t," Δ=",Igf[t] + Igg[t] - Ig[t])
     end
     if abs(Wf[t]*(Nc[t]+Nk[t]) + WbNb[t] + Wg[t]*Ng[t] - WN[t]) > 0.00001
-        println("水平統合性が損なわれている p6 t=",t)
+        println("水平統合性が損なわれている p6 t=",t," Δ=",Wf[t]*(Nc[t]+Nk[t]) + WbNb[t] + Wg[t]*Ng[t] - WN[t])
     end
     if abs(Tiw[t] + Tii[t] - Ti[t]) > 0.00001
-        println("水平統合性が損なわれている p7 t=",t)
+        println("水平統合性が損なわれている p7 t=",t," Δ=",Tiw[t] + Tii[t] - Ti[t])
     end
     if abs(Tew[t] + Tei[t] + Tef[t] - Te[t]) > 0.00001
-        println("水平統合性が損なわれている p8 t=",t)
+        println("水平統合性が損なわれている p8 t=",t," Δ=",Tew[t] + Tei[t] + Tef[t] - Te[t])
     end
     if abs(Πi[t] + Πf[t] + Πb[t] - Π[t]) > 0.00001
-        println("水平統合性が損なわれている p9 t=",t)
+        println("水平統合性が損なわれている p9 t=",t," Δ=",Πi[t] + Πf[t] + Πb[t] - Π[t])
     end
     if abs(ΔMw[t] + ΔMi[t] + ΔMf[t] - ΔM[t]) > 0.00001
-        println("水平統合性が損なわれている p10 t=",t)
+        println("水平統合性が損なわれている p10 t=",t," Δ=",ΔMw[t] + ΔMi[t] + ΔMf[t] - ΔM[t])
     end
     if abs(ΔLw[t] + ΔLi[t] + ΔLf[t] - ΔL[t]) > 0.00001
-        println("水平統合性が損なわれている p11 t=",t)
+        println("水平統合性が損なわれている p11 t=",t," Δ=",ΔLw[t] + ΔLi[t] + ΔLf[t] - ΔL[t])
     end
     if abs(ΔEi[t] + ΔEb[t] - ΔE[t]) > 0.00001
-        println("水平統合性が損なわれている p12 t=",t)
+        println("水平統合性が損なわれている p12 t=",t," Δ=",ΔEi[t] + ΔEb[t] - ΔE[t])
     end
     if abs(ΔGBi[t] + ΔGBb[t] - ΔGB[t]) > 0.00001
-        println("水平統合性が損なわれている p13 t=",t)
+        println("水平統合性が損なわれている p13 t=",t," Δ=",ΔGBi[t] + ΔGBb[t] - ΔGB[t])
     end
     if abs(-p[t]*Cw[t] + WN[t] + SS[t] - Tiw[t] - Tew[t] - i*Lw[t] - ΔMw[t] + ΔLw[t]) > 0.00001
-        println("垂直統合性が損なわれている p14 t=",t)
+        println("垂直統合性が損なわれている p14 t=",t," Δ=",-p[t]*Cw[t] + WN[t] + SS[t] - Tiw[t] - Tew[t] - i*Lw[t] - ΔMw[t] + ΔLw[t])
     end
     if abs(-p[t]*Ci[t]- Tii[t] - Tei[t] + Πi[t] + ig*GBi[t] - ΔMi[t] + ΔLi[t] - pe*ΔEi[t] - ΔGBi[t]) > 0.00001
-        println("垂直統合性が損なわれている p15 t=",t)
+        println("垂直統合性が損なわれている p15 t=",t," Δ=",-p[t]*Ci[t]- Tii[t] - Tei[t] + Πi[t] + ig*GBi[t] - ΔMi[t] + ΔLi[t] - pe*ΔEi[t] - ΔGBi[t])
     end
     if abs(p[t]*C[t] + p[t]*ΔIN[t] + pk[t]*I[t] + p[t]*Igf[t] - Wf[t]*(Nc[t] + Nk[t]) - Tv[t] - Tef[t] -Tf[t] - Π[t] - i*Lf[t]) > 0.00001
-        println("垂直統合性が損なわれている p16 t=",t)
+        println("垂直統合性が損なわれている p16 t=",t," Δ=",p[t]*C[t] + p[t]*ΔIN[t] + pk[t]*I[t] + p[t]*Igf[t] - Wf[t]*(Nc[t] + Nk[t]) - Tv[t] - Tef[t] -Tf[t] - Π[t] - i*Lf[t])
     end
     if abs(-p[t]*ΔIN[t] - pk[t]*I[t] + Πf[t] - ΔMf[t] + ΔLf[t] + pe*ΔE[t]) > 0.00001
-        println("垂直統合性が損なわれている p17 t=",t)
+        println("垂直統合性が損なわれている p17 t=",t," Δ=",-p[t]*ΔIN[t] - pk[t]*I[t] + Πf[t] - ΔMf[t] + ΔLf[t] + pe*ΔE[t])
     end
     if abs(-WbNb[t] + Πb[t] + ig*GBb[t] + i*L[t]) > 0.00001
-        println("垂直統合性が損なわれている p18 t=",t)
+        println("垂直統合性が損なわれている p18 t=",t," Δ=",-WbNb[t] + Πb[t] + ig*GBb[t] + i*L[t])
     end
     if abs(ΔM[t] - ΔL[t] - ΔH[t] - pe*ΔEb[t] - ΔGBb[t]) > 0.00001
-        println("垂直統合性が損なわれている p19 t=",t)
+        println("垂直統合性が損なわれている p19 t=",t," Δ=",ΔM[t] - ΔL[t] - ΔH[t] - pe*ΔEb[t] - ΔGBb[t])
     end
     if abs(-p[t]*Cg[t] + p[t]*Igg[t] - Wg[t]*Ng[t] - SS[t] + Tv[t] + Ti[t] + Te[t] + Tf[t] - ig*GB[t] - GS[t]) > 0.00001
-        println("垂直統合性が損なわれている p20 t=",t)
+        println("垂直統合性が損なわれている p20 t=",t," Δ=",-p[t]*Cg[t] + p[t]*Igg[t] - Wg[t]*Ng[t] - SS[t] + Tv[t] + Ti[t] + Te[t] + Tf[t] - ig*GB[t] - GS[t])
     end
     if abs(NLg[t] + ΔH[t] + ΔGB[t]) > 0.00001#   隠された会計恒等式
         println("垂直統合性が損なわれている p21 t=",t," Δ=",NLg[t] + ΔH[t] + ΔGB[t])
@@ -328,88 +331,164 @@ end
 
 #   影響のシミュレーション
 
+
 #   可視化
-plot(p[end-100:end-1].*Cg[end-100:end-1], label="Cg")
-plot!(p[end-100:end-1].*Igf[end-100:end-1], label="Igf")
-plot!(SS[end-100:end-1], label="SS")
-plot!(Wg[end-100:end-1].*Ng[end-100:end-1], label="Wg")
-savefig("figs/GovExp.png")
-plot(Tv[end-100:end-1], label="Tv")
-plot!(Ti[end-100:end-1], label="Ti")
-plot!(Te[end-100:end-1], label="Te")
-plot!(Tf[end-100:end-1], label="Tf")
-savefig("figs/Tax.png")
-plot(p[end-100:end-1].*C[end-100:end-1], label="C")
-plot!(p[end-100:end-1].*Cw[end-100:end-1], label="Cw")
-plot!(p[end-100:end-1].*Ci[end-100:end-1], label="Ci")
-plot!(p[end-100:end-1].*Cg[end-100:end-1], label="Cg")
-plot!(p[end-100:end-1].*IN[end-100:end-1], label="IN")
-plot!(p[end-100:end-1].*S[end-100:end-1], label="S")
-savefig("figs/1.png")
-plot(NWw[end-100:end-1], label="NWw")
-plot!(NWi[end-100:end-1], label="NWi")
-plot!(NWf[end-100:end-1], label="NWf")
-plot!(NWg[end-100:end-1], label="NWg")
-savefig("figs/NW.png")
-plot(NLw[end-100:end-1], label="NLw")
-plot!(NLi[end-100:end-1], label="NLi")
-plot!(NLf[end-100:end-1], label="NLf")
-plot!(NLg[end-100:end-1], label="NLg")
-savefig("figs/NL.png")
-plot(Nk[end-100:end-1], label="Nk")
-plot!(Nc[end-100:end-1], label="Nc")
-plot!(Ng[end-100:end-1], label="Ng")
-savefig("figs/N.png")
-plot(uk[end-100:end-1], label="uk")
-plot!(uc[end-100:end-1], label="uc")
-plot!(u[end-100:end-1], label="u")
-savefig("figs/u.png")
-plot(ugk[end-100:end-1], label="ugk")
-plot!(ugc[end-100:end-1], label="ugc")
-plot!(ug[end-100:end-1], label="ug")
-savefig("figs/ug.png")
-plot(I[end-100:end-1], label="I")
-plot!(Ig[end-100:end-1], label="Ig")
-plot!(Kg[end-100:end-1], label="Kg")
-plot!(K[end-100:end-1], label="K")
-savefig("figs/K.png")
-plot(M[end-100:end-1], label="M")
-plot!(Mw[end-100:end-1], label="Mw")
-plot!(Mi[end-100:end-1], label="Mi")
-plot!(Mf[end-100:end-1], label="Mf")
-savefig("figs/M.png")
-plot(Wf[end-100:end-1], label="Wf")
-plot!(Wg[end-100:end-1], label="Wg")
-savefig("figs/W.png")
-plot(p[end-100:end-1], label="p")
-plot!(pk[end-100:end-1], label="pk")
-plot!(UC[end-100:end-1], label="UC")
-savefig("figs/p.png")
-plot(YDw[end-100:end-1], label="YDw")
-plot!(YDi[end-100:end-1], label="YDi")
-savefig("figs/YD.png")
-plot(Tv[end-100:end-1], label="Tv")
-plot!(Tf[end-100:end-1], label="Tf")
-savefig("figs/Tv_and_Tf.png")
-plot(Tiw[end-100:end-1], label="Tiw")
-plot!(Tii[end-100:end-1], label="Tii")
-plot!(Ti[end-100:end-1], label="Ti")
-savefig("figs/Ti.png")
-plot(Tew[end-100:end-1], label="Tew")
-plot!(Tei[end-100:end-1], label="Tei")
-plot!(Tef[end-100:end-1], label="Tef")
-plot!(Te[end-100:end-1], label="Te")
-savefig("figs/Te.png")
-plot(C_demand[end-100:end-1], label="C_demand")
-plot!(C[end-100:end-1], label="C")
-plot!(Ce[end-100:end-1], label="Ce")
-savefig("figs/C_demand")
-plot(Π[end-100:end-1], label="Π")
-plot!(Πi[end-100:end-1], label="Πi")
-plot!(Πf[end-100:end-1], label="Πf")
-plot!(Πb[end-100:end-1], label="Πb")
-savefig("figs/Π")
-plot(E[end-100:end-1], label="E")
-plot!(Ei[end-100:end-1], label="Ei")
-plot!(Eb[end-100:end-1], label="Eb")
-savefig("figs/E")
+function plots_per_nation()
+    plot(p[end-100:end-1].*Cg[end-100:end-1], label="Cg")
+    plot!(p[end-100:end-1].*Igf[end-100:end-1], label="Igf")
+    plot!(SS[end-100:end-1], label="SS")
+    plot!(Wg[end-100:end-1].*Ng[end-100:end-1], label="Wg")
+    savefig("figs/per_nation/GovExp.png")
+    plot(Tv[end-100:end-1], label="Tv")
+    plot!(Ti[end-100:end-1], label="Ti")
+    plot!(Te[end-100:end-1], label="Te")
+    plot!(Tf[end-100:end-1], label="Tf")
+    savefig("figs/per_nation/Tax.png")
+    plot(p[end-100:end-1].*C[end-100:end-1], label="C")
+    plot!(p[end-100:end-1].*Cw[end-100:end-1], label="Cw")
+    plot!(p[end-100:end-1].*Ci[end-100:end-1], label="Ci")
+    plot!(p[end-100:end-1].*Cg[end-100:end-1], label="Cg")
+    plot!(p[end-100:end-1].*IN[end-100:end-1], label="IN")
+    plot!(p[end-100:end-1].*S[end-100:end-1], label="S")
+    savefig("figs/per_nation/1.png")
+    plot(NWw[end-100:end-1], label="NWw")
+    plot!(NWi[end-100:end-1], label="NWi")
+    plot!(NWf[end-100:end-1], label="NWf")
+    plot!(NWg[end-100:end-1], label="NWg")
+    savefig("figs/per_nation/NW.png")
+    plot(NLw[end-100:end-1], label="NLw")
+    plot!(NLi[end-100:end-1], label="NLi")
+    plot!(NLf[end-100:end-1], label="NLf")
+    plot!(NLg[end-100:end-1], label="NLg")
+    savefig("figs/per_nation/NL.png")
+    plot(Nk[end-100:end-1], label="Nk")
+    plot!(Nc[end-100:end-1], label="Nc")
+    plot!(Ng[end-100:end-1], label="Ng")
+    savefig("figs/per_nation/N.png")
+    plot(uk[end-100:end-1], label="uk")
+    plot!(uc[end-100:end-1], label="uc")
+    plot!(u[end-100:end-1], label="u")
+    savefig("figs/per_nation/u.png")
+    plot(ugk[end-100:end-1], label="ugk")
+    plot!(ugc[end-100:end-1], label="ugc")
+    plot!(ug[end-100:end-1], label="ug")
+    savefig("figs/per_nation/ug.png")
+    plot(I[end-100:end-1], label="I")
+    plot!(Ig[end-100:end-1], label="Ig")
+    plot!(Kg[end-100:end-1], label="Kg")
+    plot!(K[end-100:end-1], label="K")
+    savefig("figs/per_nation/K.png")
+    plot(M[end-100:end-1], label="M")
+    plot!(Mw[end-100:end-1], label="Mw")
+    plot!(Mi[end-100:end-1], label="Mi")
+    plot!(Mf[end-100:end-1], label="Mf")
+    savefig("figs/per_nation/M.png")
+    plot(Wf[end-100:end-1], label="Wf")
+    plot!(Wg[end-100:end-1], label="Wg")
+    savefig("figs/per_nation/W.png")
+    plot(p[end-100:end-1], label="p")
+    plot!(pk[end-100:end-1], label="pk")
+    plot!(UC[end-100:end-1], label="UC")
+    savefig("figs/per_nation/p.png")
+    plot(YDw[end-100:end-1], label="YDw")
+    plot!(YDi[end-100:end-1], label="YDi")
+    savefig("figs/per_nation/YD.png")
+    plot(Tv[end-100:end-1], label="Tv")
+    plot!(Tf[end-100:end-1], label="Tf")
+    savefig("figs/per_nation/Tv_and_Tf.png")
+    plot(Tiw[end-100:end-1], label="Tiw")
+    plot!(Tii[end-100:end-1], label="Tii")
+    plot!(Ti[end-100:end-1], label="Ti")
+    savefig("figs/per_nation/Ti.png")
+    plot(Tew[end-100:end-1], label="Tew")
+    plot!(Tei[end-100:end-1], label="Tei")
+    plot!(Tef[end-100:end-1], label="Tef")
+    plot!(Te[end-100:end-1], label="Te")
+    savefig("figs/per_nation/Te.png")
+    plot(C_demand[end-100:end-1], label="C_demand")
+    plot!(C[end-100:end-1], label="C")
+    plot!(Ce[end-100:end-1], label="Ce")
+    savefig("figs/per_nation/C_demand")
+    plot(Π[end-100:end-1], label="Π")
+    plot!(Πi[end-100:end-1], label="Πi")
+    plot!(Πf[end-100:end-1], label="Πf")
+    plot!(Πb[end-100:end-1], label="Πb")
+    savefig("figs/per_nation/Π")
+    plot(E[end-100:end-1], label="E")
+    plot!(Ei[end-100:end-1], label="Ei")
+    plot!(Eb[end-100:end-1], label="Eb")
+    savefig("figs/per_nation/E")
+    plot(L[end-100:end-1], label="L")
+    plot!(Lw[end-100:end-1], label="Lw")
+    plot!(Li[end-100:end-1], label="Li")
+    plot!(Lf[end-100:end-1], label="Lf")
+    savefig("figs/per_nation/L")
+end
+function plots_per_person()
+    plot(SS[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="SS")
+    savefig("figs/per_person/SS.png")
+    plot(Tv[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Tv")
+    plot!(Ti[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Ti")
+    plot!(Te[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Te")
+    plot!(Tf[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Tf")
+    savefig("figs/per_person/Tax.png")
+    plot(p[end-100:end-1].*C[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="C")
+    plot!(p[end-100:end-1].*Cw[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Cw")
+    plot!(p[end-100:end-1].*Ci[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Ci")
+    plot!(p[end-100:end-1].*Cg[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Cg")
+    plot!(p[end-100:end-1].*IN[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="IN")
+    plot!(p[end-100:end-1].*S[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="S")
+    savefig("figs/per_person/1.png")
+    plot(NWw[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="NWw")
+    plot!(NWi[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="NWi")
+    plot!(NWf[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="NWf")
+    plot!(NWg[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="NWg")
+    savefig("figs/per_person/NW.png")
+    plot(NLw[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="NLw")
+    plot!(NLi[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="NLi")
+    plot!(NLf[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="NLf")
+    plot!(NLg[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="NLg")
+    savefig("figs/per_person/NL.png")
+    plot(I[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="I")
+    plot!(Ig[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Ig")
+    plot!(Kg[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Kg")
+    plot!(K[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="K")
+    savefig("figs/per_person/K.png")
+    plot(M[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="M")
+    plot!(Mw[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Mw")
+    plot!(Mi[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Mi")
+    plot!(Mf[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Mf")
+    savefig("figs/per_person/M.png")
+    plot(Tv[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Tv")
+    plot!(Tf[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Tf")
+    savefig("figs/per_person/Tv_and_Tf.png")
+    plot(Tiw[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Tiw")
+    plot!(Tii[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Tii")
+    plot!(Ti[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Ti")
+    savefig("figs/per_person/Ti.png")
+    plot(Tew[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Tew")
+    plot!(Tei[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Tei")
+    plot!(Tef[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Tef")
+    plot!(Te[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Te")
+    savefig("figs/per_person/Te.png")
+    plot(C_demand[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="C_demand")
+    plot!(C[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="C")
+    plot!(Ce[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Ce")
+    savefig("figs/per_person/C_demand")
+    plot(Π[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Π")
+    plot!(Πi[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Πi")
+    plot!(Πf[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Πf")
+    plot!(Πb[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Πb")
+    savefig("figs/per_person/Π")
+    plot(E[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="E")
+    plot!(Ei[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Ei")
+    plot!(Eb[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Eb")
+    savefig("figs/per_person/E")
+    plot(L[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="L")
+    plot!(Lw[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Lw")
+    plot!(Li[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Li")
+    plot!(Lf[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Lf")
+    savefig("figs/per_person/L")
+end
+plots_per_nation()
+plots_per_person()
