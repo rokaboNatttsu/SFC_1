@@ -7,18 +7,25 @@ function btw(X::Float64, Y::Float64, Z::Float64)
     end
     return max(X, min(Y, Z))
 end
+function cal_estimated_value(X, Xe, t, T, λe)
+    tm1 = (T + t - 1 - 1) % T + 1
+    tm2 = (T + t - 2 - 1) % T + 1
+    tm3 = (T + t - 3 - 1) % T + 1
+    tm4 = (T + t - 4 - 1) % T + 1
+    return λe*X[tm1] + (1 - λe)*Xe[tm1] + (X[tm1] - X[tm2])/2 + (X[tm2] - X[tm3])/3 + (X[tm3] - X[tm4])/6
+end
 
 #   外生変数
-T = 10^3 + 1
+T = 500 + 1
 m = 0.1 #   税も含めた総コストに対する価格マークアップ
-ut, ugt = 0.8, 0.7    #   目標資本稼働率
+ut, ugt = 0.75, 0.7    #   目標資本稼働率
 Cg0, SS0 = 50.0, 10.0
 ig, pe, i = 0.01, 1.0, 0.02
 
 #   パラメータ
 α1, α2, α3, α4, α5 = 0.9, 0.05, 0.1, 0.05, 0.01
 βk, βc, βgk, βgc, βg1, βg2, βg3 = 0.4, 0.4, 0.4, 4.0, α5, 0.5, 0.3
-β0, β2, β3, β4, β5, β6 = 0.1, 0.1, 0.1, 0.05, 1.0, 1.0
+β0, β2, β3, β4, β5, β6 = 0.1, 0.2, 0.1, 0.05, 1.0, 1.0
 β1 = (βk*ut - β0)/(βk*ut)
 γ1, γ2, γ3 = 0.02, 0.02, 0.02
 γc, γk, γg = 1.0, 2.0, 1.0
@@ -27,7 +34,7 @@ ig, pe, i = 0.01, 1.0, 0.02
 λ00, λ10, λ20, λ01, λ11, λ21 = 0.4, 0.4, 0.2, -1.0, 1.0, 0.0
 λ21 = -(λ01 + λ11)
 λ20 = 1 - (λ00 + λ10)
-λe = 0.5
+λe, λp = 0.5, 0.75
 
 #   変数定義
 p, pk = zeros(T), zeros(T), zeros(T)
@@ -85,27 +92,24 @@ Wf[1] = Wf[end]
 
 #   定常状態に至るまでシミュレーション
 for t = 1:T-1
-    tm1, tm2 = t - 1, t - 2
-    if tm1 == 0
-        tm1 = T
-        tm2 = T - 1
-    elseif tm2 == 0
-        tm2 = T
-    end
+    tm1 = (T + t - 1 - 1) % T + 1
+    tm2 = (T + t - 2 - 1) % T + 1
+    tm3 = (T + t - 3 - 1) % T + 1
+    tm4 = (T + t - 4 - 1) % T + 1
     #   期待値計算
-    ue[t] = λe*u[tm1] + (1 - λe)*ue[tm1] + (u[tm1] - u[tm2])
-    Ie[t] = λe*I[tm1] + (1 - λe)*Ie[tm1] + (I[tm1] - I[tm2])
-    Ce[t] = λe*C[tm1] + (1 - λe)*Ce[tm1] + (C[tm1] - C[tm2])
-    Se[t] = λe*S[tm1] + (1 - λe)*Se[tm1] + (S[tm1] - S[tm2])
-    INe[t] = λe*IN[tm1] + (1 - λe)*INe[tm1] + (IN[tm1] - IN[tm2])
-    Igfe[t] = λe*Igf[tm1] + (1 - λe)*Igfe[tm1] + (Igf[tm1] - Igf[tm2])
-    YDwe[t] = λe*YDw[tm1] + (1 - λe)*YDwe[tm1] + (YDw[tm1] - YDw[tm2])
-    YDie[t] = λe*YDi[tm1] + (1 - λe)*YDie[tm1] + (YDi[tm1] - YDi[tm2])
-    Tve[t] = λe*Tv[tm1] + (1 - λe)*Tve[tm1] + (Tv[tm1] - Tv[tm2])
-    Tfe[t] = λe*Tf[tm1] + (1 - λe)*Tfe[tm1] + (Tf[tm1] - Tf[tm2])
-    Tefe[t] = λe*Tef[tm1] + (1 - λe)*Tefe[tm1] + (Tef[tm1] - Tef[tm2])
-    NWwe[t] = λe*NWw[tm1] + (1 - λe)*NWwe[tm1] + (NWw[tm1] - NWw[tm2])
-    NWie[t] = λe*NWi[tm1] + (1 - λe)*NWie[tm1] + (NWi[tm1] - NWi[tm2])
+    ue[t] = cal_estimated_value(u, ue, t, T, λe)
+    Ie[t] = cal_estimated_value(I, Ie, t, T, λe)
+    Ce[t] = cal_estimated_value(C, Ce, t, T, λe)
+    Se[t] = cal_estimated_value(S, Se, t, T, λe)
+    INe[t] = cal_estimated_value(IN, INe, t, T, λe)
+    Igfe[t] = cal_estimated_value(Igf, Igfe, t, T, λe)
+    YDwe[t] = cal_estimated_value(YDw, YDwe, t, T, λe)
+    YDie[t] = cal_estimated_value(YDi, YDie, t, T, λe)
+    Tve[t] = cal_estimated_value(Tv, Tve, t, T, λe)
+    Tfe[t] = cal_estimated_value(Tf, Tfe, t, T, λe)
+    Tefe[t] = cal_estimated_value(Tef, Tefe, t, T, λe)
+    NWwe[t] = cal_estimated_value(NWw, NWwe, t, T, λe)
+    NWie[t] = cal_estimated_value(NWi, NWie, t, T, λe)
     #   雇用者数設定
     Nc[t] = btw((1-β4)*Nc[tm1], γc*β1*K[t], (1+β3)*Nc[tm1])    #   行動方程式
     Nk[t] = btw((1-β4)*Nk[tm1], γk*(1-β1)*K[t], (1+β3)*Nk[tm1])    #   行動方程式
@@ -114,14 +118,14 @@ for t = 1:T-1
     Wf[t] = Wf[tm1]*((1-γ1) + γ1*ue[t]/ut)  #   行動方程式
     Wg[t] = Wg[tm1]*((1-γ3) + γ3*Wf[tm1]/Wg[tm1])   #   行動方程式
     UCe[t] = (UC[tm1]*IN[t] + (Wf[t]*(Nc[t] + Nk[t]) + Tve[t] + Tfe[t] + Tefe[t]))/(Se[t] + Igfe[t] + IN[t]) #   行動方程式
-    p[t] = (1.0 + m)*UCe[t]  #   行動方程式
+    p[t] = λp*p[tm1] + (1 - λp)*(1.0 + m)*UCe[t]  #   行動方程式
     pk[t] = γk*Wf[t]/(βk*(1.0 - β1))   #   行動方程式 今から同じ量の資本を再取得するために必要な賃金の合計、といったニュアンス
     #   生産活動の意思決定
     Igf[t] = min((β0 + βg1)*Kg[t]/(1.0 + βg2), βc*Nc[t]/γc, βc*β1*K[t])    #   行動方程式
     Igg[t] = min((βg2*βg1 - β0)*Kg[t]/(1.0 + βg2), βgk*Ng[t]/γg, βgk*βg3*Kg[t] - β0*Kg[t])  #   行動方程式
     Ig[t] = Igf[t] + Igg[t] #   水平一貫性の会計恒等式
-    S[t] = btw(0.0, Ce[t] - INe[t] + β2*Ce[t], max(0.0, min(βc*Nc[t]/γc - Igf[t], βc*β1*K[t] - Igf[t], βgc*(1.0 - βg3)*Kg[t])))   #   行動方程式
-    I[t] = -β0*K[t] + btw(0.0, ((S[t] + Igf[t])/(βc*β1*K[t]) - ut)*K[t] + β0*K[t], min(βk*(1.0 - β1)*K[t], βk*Nk[t]/γk))#, max(0.0, ue[t]/ut*(β5*Mf[t] + β6*NLf[tm1]))))  #   行動方程式
+    S[t] = btw(0.0, Ce[t] - IN[t] + β2*Ce[t], max(0.0, min(βc*Nc[t]/γc - Igfe[t], βc*β1*K[t] - Igfe[t], βgc*(1.0 - βg3)*Kg[t])))   #   行動方程式
+    I[t] = -β0*K[t] + btw(0.0, ((Se[t] + Igfe[t])/(βc*β1*K[t]) - ut)*K[t] + β0*K[t], min(βk*(1.0 - β1)*K[t], βk*Nk[t]/γk))#, max(0.0, ue[t]/ut*(β5*Mf[t] + β6*NLf[tm1]))))  #   行動方程式
     uc[t] = (S[t] + Igf[t])/(βc*β1*K[t])  #   定義式
     uk[t] = (I[t] + β0*K[t])/(βk*(1-β1)*K[t])   #   定義式
     u[t] = (S[t] + Igf[t])/(βc*K[t]) + (I[t] + β0*K[t])/(βk*K[t]) #   定義式
@@ -137,10 +141,11 @@ for t = 1:T-1
     C_demand[t] = Cw[t] + Ci[t] + Cg[t]
     C[t] = min(IN[t] + S[t], C_demand[t])    #   水平一貫性の会計恒等式
     if C_demand[t] > C[t]
-        tmp = C[t]/(Cw[t] + Ci[t] + Cg[t])
+        tmp = C[t]/C_demand[t]
         Cw[t] *= tmp
         Ci[t] *= tmp
         Cg[t] *= tmp
+        println(t, " C_demand > C")
     end
     SS[t] = SS0*Kg[t]/Kg[1]  #   行動方程式
     IN[t+1] = IN[t] + S[t] - C[t]   #   行動方程式
@@ -348,9 +353,9 @@ function plots_per_nation()
     plot!(p[end-100:end-1].*Cw[end-100:end-1], label="Cw")
     plot!(p[end-100:end-1].*Ci[end-100:end-1], label="Ci")
     plot!(p[end-100:end-1].*Cg[end-100:end-1], label="Cg")
-    plot!(p[end-100:end-1].*IN[end-100:end-1], label="IN")
     plot!(p[end-100:end-1].*S[end-100:end-1], label="S")
-    savefig("figs/per_nation/1.png")
+    plot!(p[end-100:end-1].*IN[end-100:end-1], label="IN")
+    savefig("figs/per_nation/C_and_S.png")
     plot(NWw[end-100:end-1], label="NWw")
     plot!(NWi[end-100:end-1], label="NWi")
     plot!(NWf[end-100:end-1], label="NWf")
@@ -424,71 +429,71 @@ function plots_per_nation()
     plot!(Lf[end-100:end-1], label="Lf")
     savefig("figs/per_nation/L")
 end
-function plots_per_person()
+function plots_per_worker()
     plot(SS[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="SS")
-    savefig("figs/per_person/SS.png")
+    savefig("figs/per_worker/SS.png")
     plot(Tv[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Tv")
     plot!(Ti[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Ti")
     plot!(Te[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Te")
     plot!(Tf[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Tf")
-    savefig("figs/per_person/Tax.png")
+    savefig("figs/per_worker/Tax.png")
     plot(p[end-100:end-1].*C[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="C")
     plot!(p[end-100:end-1].*Cw[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Cw")
     plot!(p[end-100:end-1].*Ci[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Ci")
     plot!(p[end-100:end-1].*Cg[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Cg")
-    plot!(p[end-100:end-1].*IN[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="IN")
     plot!(p[end-100:end-1].*S[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="S")
-    savefig("figs/per_person/1.png")
+    plot!(p[end-100:end-1].*IN[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="IN")
+    savefig("figs/per_worker/C_and_S.png")
     plot(NWw[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="NWw")
     plot!(NWi[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="NWi")
     plot!(NWf[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="NWf")
     plot!(NWg[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="NWg")
-    savefig("figs/per_person/NW.png")
+    savefig("figs/per_worker/NW.png")
     plot(NLw[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="NLw")
     plot!(NLi[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="NLi")
     plot!(NLf[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="NLf")
     plot!(NLg[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="NLg")
-    savefig("figs/per_person/NL.png")
+    savefig("figs/per_worker/NL.png")
     plot(I[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="I")
     plot!(Ig[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Ig")
     plot!(Kg[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Kg")
     plot!(K[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="K")
-    savefig("figs/per_person/K.png")
+    savefig("figs/per_worker/K.png")
     plot(M[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="M")
     plot!(Mw[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Mw")
     plot!(Mi[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Mi")
     plot!(Mf[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Mf")
-    savefig("figs/per_person/M.png")
+    savefig("figs/per_worker/M.png")
     plot(Tv[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Tv")
     plot!(Tf[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Tf")
-    savefig("figs/per_person/Tv_and_Tf.png")
+    savefig("figs/per_worker/Tv_and_Tf.png")
     plot(Tiw[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Tiw")
     plot!(Tii[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Tii")
     plot!(Ti[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Ti")
-    savefig("figs/per_person/Ti.png")
+    savefig("figs/per_worker/Ti.png")
     plot(Tew[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Tew")
     plot!(Tei[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Tei")
     plot!(Tef[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Tef")
     plot!(Te[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Te")
-    savefig("figs/per_person/Te.png")
+    savefig("figs/per_worker/Te.png")
     plot(C_demand[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="C_demand")
     plot!(C[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="C")
     plot!(Ce[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Ce")
-    savefig("figs/per_person/C_demand")
+    savefig("figs/per_worker/C_demand")
     plot(Π[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Π")
     plot!(Πi[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Πi")
     plot!(Πf[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Πf")
     plot!(Πb[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Πb")
-    savefig("figs/per_person/Π")
+    savefig("figs/per_worker/Π")
     plot(E[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="E")
     plot!(Ei[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Ei")
     plot!(Eb[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Eb")
-    savefig("figs/per_person/E")
+    savefig("figs/per_worker/E")
     plot(L[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="L")
     plot!(Lw[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Lw")
     plot!(Li[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Li")
     plot!(Lf[end-100:end-1]./(Ng[end-100:end-1] + Nc[end-100:end-1] + Nk[end-100:end-1]), label="Lf")
-    savefig("figs/per_person/L")
+    savefig("figs/per_worker/L")
 end
 plots_per_nation()
-plots_per_person()
+plots_per_worker()
