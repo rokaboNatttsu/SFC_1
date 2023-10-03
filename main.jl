@@ -16,7 +16,7 @@ function cal_estimated_value(X, Xe, t, T, λe)
 end
 
 #   外生変数
-T = 100 + 1
+T = 200 + 1     #   > 100
 m = 0.1 #   税も含めた総コストに対する価格マークアップ
 ut, ugt = 0.75, 0.7    #   目標資本稼働率
 Cg0, SS0 = 50.0, 10.0
@@ -75,8 +75,8 @@ I[end], Ie[end] = 1.0, 1.0
 K[end], Kg[end] = 1800.0, 300.0
 C[end], Ce[end], INe[end], IN[end], S[end] = 350.0, 350.0, 70.0, 70.0, 350.0
 C_demand[end] = C[end]
-YDwe[end], YDw[end], YDie[end], YDi[end] = 1.0, 1.0, 1.0, 1.0
-NWwe[end], NWw[end], NWie[end], NWi[end] = 1.0, 1.0, 1.0, 1.0
+YDwe[end], YDw[end], YDie[end], YDi[end] = 55.0, 55.0, 2.0, 2.0
+NWwe[end], NWw[end], NWie[end], NWi[end] = 500.0, 500.0, 110.0, 110.0
 Π[end] = 1.0
 Wf[end], Wg[end], WN[end] = 0.01, 0.01, 6.0
 Igf[end], Igfe[end], Πi[end], GBi[end], Tiw[end], Tii[end] = 1.0, 1.0, 1.0, 1.0, 1.0, 1.0
@@ -85,11 +85,12 @@ IN[1], Ei[1], E[1] = β2*C[end], Ei[end], Ei[end]
 Mf[1], Mi[1], Mw[1] = 2500.0, 100.0, 500.0
 M[1], H[1] = sum([Mf[1], Mi[1], Mw[1]]), sum([Mf[1], Mi[1], Mw[1]])
 K[1], Kg[1] = K[end], Kg[end]
+NWw[1] = Mw[1]
 NWi[1] = pe*Ei[1] + Mi[1]
 NWf[1] = pk[end]*K[1] + p[end]*IN[1] - pe*E[1] + Mf[1]
 NWg[1] = p[end]*Kg[1] - H[1]
 Wf[1] = Wf[end]
-    #   ストックの変数の初期値は必ず会計的一貫性を持つように設定すること
+    #   ストックの変数の初期値は必ず会計的一貫性を持つように設定すること。未確認
 
 #   定常状態に至るまでシミュレーション
 for t = 1:T-1
