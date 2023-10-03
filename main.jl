@@ -16,19 +16,19 @@ function cal_estimated_value(X, Xe, t, T, λe)
 end
 
 #   外生変数
-T = 500 + 1
+T = 100 + 1
 m = 0.1 #   税も含めた総コストに対する価格マークアップ
 ut, ugt = 0.75, 0.7    #   目標資本稼働率
 Cg0, SS0 = 50.0, 10.0
 ig, pe, i = 0.01, 1.0, 0.02
 
 #   パラメータ
-α1, α2, α3, α4, α5 = 0.9, 0.05, 0.1, 0.05, 0.01
+α1, α2, α3, α4, α5 = 0.9, 0.05, 0.1, 0.05, 0.0
 βk, βc, βgk, βgc, βg1, βg2, βg3 = 0.4, 0.4, 0.4, 4.0, α5, 0.5, 0.3
 β0, β2, β3, β4, β5, β6 = 0.1, 0.2, 0.1, 0.05, 1.0, 1.0
 β1 = (βk*ut - β0)/(βk*ut)
 γ1, γ2, γ3 = 0.02, 0.02, 0.02
-γc, γk, γg = 1.0, 2.0, 1.0
+γc, γk, γg = 1.0, 2.0, 2.0
 δv, δiw, δii, δem, δei, δef, δf  = 0.1, 0.2, 0.2, 0.01, 0.02, 0.015, 0.2
 ϵ, η, ζ = 0.65, 5.0, 0.01
 λ00, λ10, λ20, λ01, λ11, λ21 = 0.4, 0.4, 0.2, -1.0, 1.0, 0.0
@@ -38,7 +38,6 @@ ig, pe, i = 0.01, 1.0, 0.02
 
 #   変数定義
 p, pk = zeros(T), zeros(T), zeros(T)
-Wf, Wg = zeros(T), zeros(T)
 u, uc, uk, ug, ugk, ugc, ue = zeros(T), zeros(T), zeros(T), zeros(T), zeros(T), zeros(T), zeros(T)
 UCe, UC = zeros(T), zeros(T)
 I, Ig, Igg, Igf, Ie, Igfe = zeros(T), zeros(T), zeros(T), zeros(T), zeros(T), zeros(T)
@@ -69,12 +68,12 @@ NWw, NWi, NWf, NWg = zeros(T), zeros(T), zeros(T), zeros(T)
 H, ΔH = zeros(T), zeros(T)
 
 #   初期値設定
-u[end], ue[end] = 1.0, 1.0
-Nc[end], Nk[end], Ng[end] = 250.0, 250.0, 100.0
-UC[end], p[end], pk[end] = 1.0, 1.0, 1.0
+u[end], ue[end] = ut, ut
+Nc[end], Nk[end], Ng[end] = 1200.0, 1200.0, 180.0
+UC[end], p[end], pk[end] = 0.2, 0.22, 0.22
 I[end], Ie[end] = 1.0, 1.0
-K[end], Kg[end] = 500.0, 300.0
-C[end], Ce[end], INe[end], IN[end], S[end] = 1.0, 1.0, 1.0, 1.0, 1.0
+K[end], Kg[end] = 1800.0, 300.0
+C[end], Ce[end], INe[end], IN[end], S[end] = 350.0, 350.0, 70.0, 70.0, 350.0
 C_demand[end] = C[end]
 YDwe[end], YDw[end], YDie[end], YDi[end] = 1.0, 1.0, 1.0, 1.0
 NWwe[end], NWw[end], NWie[end], NWi[end] = 1.0, 1.0, 1.0, 1.0
@@ -82,11 +81,13 @@ NWwe[end], NWw[end], NWie[end], NWi[end] = 1.0, 1.0, 1.0, 1.0
 Wf[end], Wg[end], WN[end] = 0.01, 0.01, 6.0
 Igf[end], Igfe[end], Πi[end], GBi[end], Tiw[end], Tii[end] = 1.0, 1.0, 1.0, 1.0, 1.0, 1.0
 Ei[end] = 10.0
-IN[1], Ei[1], E[1] = 1.0, Ei[end], Ei[end]
+IN[1], Ei[1], E[1] = β2*C[end], Ei[end], Ei[end]
+Mf[1], Mi[1], Mw[1] = 2500.0, 100.0, 500.0
+M[1], H[1] = sum([Mf[1], Mi[1], Mw[1]]), sum([Mf[1], Mi[1], Mw[1]])
 K[1], Kg[1] = K[end], Kg[end]
-NWi[1] = pe*Ei[1]
-NWf[1] = pk[end]*K[1] + p[end]*IN[1] - pe*E[1]
-NWg[1] = p[end]*Kg[1]
+NWi[1] = pe*Ei[1] + Mi[1]
+NWf[1] = pk[end]*K[1] + p[end]*IN[1] - pe*E[1] + Mf[1]
+NWg[1] = p[end]*Kg[1] - H[1]
 Wf[1] = Wf[end]
     #   ストックの変数の初期値は必ず会計的一貫性を持つように設定すること
 
